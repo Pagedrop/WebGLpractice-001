@@ -1,6 +1,6 @@
 import * as THREE from "./lib/three.module.js";
-import { OrbitControls } from "../lib/OrbitControls.js";
-import { GUI } from "../lib/lil-gui.js";
+import { OrbitControls } from "./lib/OrbitControls.js";
+import { GUI } from "./lib/lil-gui.js";
 
 window.addEventListener(
   "DOMContentLoaded",
