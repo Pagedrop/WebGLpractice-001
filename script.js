@@ -24,8 +24,8 @@ class App3 {
       near: 0.1,
       far: 1000,
       x: 0.0,
-      y: 4.0,
-      z: 20.0,
+      y: 0.0,
+      z: 10.0,
       lookAt: new THREE.Vector3(0.0, 0.0, 0.0),
     };
   }
@@ -47,9 +47,9 @@ class App3 {
   static get DIRECTIONAL_LIGHT_PARAM() {
     return {
       color: 0xffffff,
-      intensity: 1.0,
+      intensity: 0.2,
       x: 2.0,
-      y: 2.0,
+      y: 4.0,
       z: 2.0,
     };
   }
@@ -60,7 +60,17 @@ class App3 {
   static get AMBIENT_LIGHT_PARAM() {
     return {
       color: 0xffffff,
-      intensity: 0.2,
+      intensity: 0.4,
+    };
+  }
+
+  /**
+   * ポイントライト定義の定数
+   */
+  static get POINT_LIGHT_PARAM() {
+    return {
+      color: 0xffffff,
+      intensity: 0.5,
     };
   }
 
@@ -83,13 +93,18 @@ class App3 {
     this.camera;
     this.directionalLight;
     this.ambientLight;
+    this.pointLight;
     this.material;
     this.boxGeometry;
     this.box;
     this.boxArray;
+    this.groundGeometry;
+    this.groundMaterial;
+    this.ground;
     this.controls;
     this.axesHelper;
     this.directionalLightHelper;
+    this.pointLightHelper;
 
     this.isDown = false;
 
@@ -145,10 +160,13 @@ class App3 {
     //レンダラー
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setClearColor(App3.RENDERER_PARAM.clearColor);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(
       App3.RENDERER_PARAM.width,
       App3.RENDERER_PARAM.height
     );
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const wrapper = document.querySelector("#webgl");
     wrapper.appendChild(this.renderer.domElement);
 
@@ -179,6 +197,17 @@ class App3 {
       App3.DIRECTIONAL_LIGHT_PARAM.y,
       App3.DIRECTIONAL_LIGHT_PARAM.z
     );
+    this.directionalLight.castShadow = true;
+    this.directionalLight.shadow.mapSize.set(2048, 2048);
+    const edge = 10;
+    this.directionalLight.shadow.camera = new THREE.OrthographicCamera(
+      -edge,
+      edge,
+      edge,
+      -edge,
+      0.1,
+      30
+    );
     this.scene.add(this.directionalLight);
 
     // アンビエントライト
@@ -188,6 +217,16 @@ class App3 {
     );
     this.scene.add(this.ambientLight);
 
+    // ポイントライト
+    this.pointLight = new THREE.PointLight(
+      App3.POINT_LIGHT_PARAM.color,
+      App3.POINT_LIGHT_PARAM.intensity
+    );
+    this.pointLight.castShadow = true;
+    this.pointLight.shadow.mapSize.set(2048, 2048);
+    this.pointLight.position.set(4, 0, 4);
+    this.scene.add(this.pointLight);
+
     // ジオメトリ
     this.boxGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
 
@@ -195,7 +234,6 @@ class App3 {
     this.material = new THREE.MeshPhongMaterial(App3.MATERIAL_PARAM);
 
     // boxを10個生成
-
     const BOX_COUNT = 100;
     this.boxArray = [];
 
@@ -211,15 +249,25 @@ class App3 {
       const posX = 0.04 * i * Math.cos(rad * i);
       const posZ = 0.04 * i * Math.sin(rad * i);
 
-      box.position.set(posX, 0.06 * i, posZ);
+      box.position.set(posX, -3 + 0.06 * i, posZ);
+      box.castShadow = true;
+      box.receiveShadow = true;
 
       this.scene.add(box);
       this.boxArray.push(box);
     }
 
-    // // メッシュ
-    // this.box = new THREE.Mesh(this.boxGeometry, this.material);
-    // this.scene.add(this.box);
+    // groundMeshの生成
+    this.groundGeometry = new THREE.PlaneGeometry(10, 10);
+    this.groundMaterial = new THREE.MeshStandardMaterial({
+      color: 0xfafafa,
+      side: THREE.DoubleSide,
+    });
+    this.ground = new THREE.Mesh(this.groundGeometry, this.groundMaterial);
+    this.ground.rotation.x = -Math.PI / 2;
+    this.ground.position.set(0, -3.6, 0);
+    this.ground.receiveShadow = true;
+    this.scene.add(this.ground);
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -237,6 +285,14 @@ class App3 {
       directionalLightHelperSize
     );
     this.scene.add(this.directionalLightHelper);
+
+    // PointLightHelper
+    const sphereSize = 1;
+    this.pointLightHelper = new THREE.PointLightHelper(
+      this.pointLight,
+      sphereSize
+    );
+    this.scene.add(this.pointLightHelper);
   }
 
   /**
@@ -248,10 +304,16 @@ class App3 {
     if (this.isDown === true) {
       this.box.rotation.y += 0.02;
     }
-
-    this.boxArray.forEach((box) => {
-      box.rotation.y += 0.05;
-      box.rotation.z += 0.05;
+    // 偶数番目は正方向へ、奇数番目は負方向へ回転
+    // 回転の強さはランダムで
+    this.boxArray.forEach((box, i) => {
+      if (i % 2 === 0) {
+        box.rotation.y += Math.random() * 0.1;
+        box.rotation.z += Math.random() * 0.1;
+      } else {
+        box.rotation.y -= Math.random() * 0.1;
+        box.rotation.z -= Math.random() * 0.1;
+      }
     });
 
     this.controls.update();
