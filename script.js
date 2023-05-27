@@ -1,5 +1,6 @@
 import * as THREE from "./lib/three.module.js";
 import { OrbitControls } from "../lib/OrbitControls.js";
+import { GUI } from "../lib/lil-gui.js";
 
 window.addEventListener(
   "DOMContentLoaded",
@@ -91,6 +92,7 @@ class App3 {
     this.renderer;
     this.scene;
     this.camera;
+    this.gui;
     this.directionalLight;
     this.ambientLight;
     this.pointLight;
@@ -293,6 +295,23 @@ class App3 {
       sphereSize
     );
     this.scene.add(this.pointLightHelper);
+
+    // GUIデバッグ
+    this.gui = new GUI();
+    const lightGUIGroupe = this.gui.addFolder("Light");
+    lightGUIGroupe
+      .add(this.directionalLight, "visible")
+      .name("DirectionalLight");
+    lightGUIGroupe.add(this.ambientLight, "visible").name("AmbientLight");
+    lightGUIGroupe.add(this.pointLight, "visible").name("PointLight");
+    const helperGUIGroupe = this.gui.addFolder("Helper");
+    helperGUIGroupe.add(this.axesHelper, "visible").name("AxesHelper");
+    helperGUIGroupe
+      .add(this.directionalLightHelper, "visible")
+      .name("DirectionalLightHelper");
+    helperGUIGroupe
+      .add(this.pointLightHelper, "visible")
+      .name("PointLightHelper");
   }
 
   /**
